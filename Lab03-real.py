@@ -58,6 +58,7 @@ def glClearColor(r, g, b): # Personaliza el color del framebuffer
   	]
 	return frBff
 
+"""
 def vertex(x,y): # Ubica un punto dentro del viewPort
 	global frBff
 	xMin, xMax, yMin, yMax = glViewPort(width/2, height/2, width/2, height/2) # Delimitadores
@@ -85,7 +86,7 @@ def vertex(x,y): # Ubica un punto dentro del viewPort
 			y = yMin + yMid
 
 		frBff[int(y)][int(x)] = currentColor 
-
+"""
 
 def write(filename, width, height, framebuffer): # Escribe el .bmp
 	
@@ -122,17 +123,17 @@ def glColor(r, g, b): # Cambia el color recurrente
 	global currentColor
 	currentColor = color(round(r*255), round(g*255), round(b*255))
 
-"""
+
 def glFinish(): # Ejecuta la inscripcion del bitmap
-	write('prueba1.bmp', len(frBff), len(frBff[0]), frBff)
-"""
+	write('renderedObj.bmp', len(frBff), len(frBff[0]), frBff)
+
 
 def glLine(x0, y0, x1, y1): # Pinta una linea
 	global frBff
 	xMin, xMax, yMin, yMax = glViewPort(width/2, height/2, 9*width/10, 9*height/10)
 	# Traduccion de los puntos ingresados
 	points = [x0, y0, x1, y1]
-	#values = list(map(int,points))
+	values = list(map(int,points))
 
 	# ----------------------------------------------------------
 	# DISCLAIMER: Translator is not used in this lab
@@ -227,9 +228,7 @@ def glLine(x0, y0, x1, y1): # Pinta una linea
 				frBff[int(round(currentY))][int(round(i))] = currentColor
 				currentX += 1
 
-def glFinish():
-	write("renderedObj.bmp", len(frBff), len(frBff[0]), frBff)
-
+"""
 def polygonOne():
 
 	# Raw coordinates are been submitted 
@@ -325,25 +324,44 @@ def masterFill(name):
 			glLine(inter[2][0], inter[2][1], inter[3][0], inter[3][1])
 
 	write(name, len(frBff), len(frBff[0]), frBff)
+"""
+
+def obj(filename):
+	global vertices, faces, lines
+	with open(filename) as f:
+		lines = f.read().splitlines()
+		vertices = []
+		faces = []
+		read()
+
+def read():
+	for line in lines:
+		if line:
+			prefix, value = line.split(' ', 1)
+			if prefix == 'v':
+				vertices.append(list(map(float, value.split(' '))))
+			elif prefix == 'f':
+				faces.append([list(map(int , face.split('/'))) for face in value.split(' ')])
 
 
 def load(filename, translate, scale):
-    model = Obj(filename)
+    model = obj(filename)
     
-    for face in model.faces:
+    for face in faces:
       vcount = len(face)
       for j in range(vcount):
         f1 = face[j][0]
         f2 = face[(j + 1) % vcount][0]
 
-        v1 = model.vertices[f1 - 1]
-        v2 = model.vertices[f2 - 1]
+        v1 = vertices[f1 - 1]
+        v2 = vertices[f2 - 1]
 
-        x1 = round((v1[0] + translate[0]) * scale[0])
-        y1 = round((v1[1] + translate[1]) * scale[1])
-        x2 = round((v2[0] + translate[0]) * scale[0])
-        y2 = round((v2[1] + translate[1]) * scale[1])
+        x1 = round((v1[0]))
+        y1 = round((v1[1]))
+        x2 = round((v2[0]))
+        y2 = round((v2[1]))
 
+        print(x1, y1, x2, y2)
         glLine(x1, y1, x2, y2)
 
 
@@ -360,6 +378,7 @@ def glInit(): # Inicializa el programa
 	frBff = glClear() # Pinta el bg de un color
 	frBff = glClearColor(0,0,1) # Modifica color de bg
 	glColor(0,0,0)
+	load("cube.obj", 0, 0)
 
 	"""
 	if polygon == "polygonOne":
