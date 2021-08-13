@@ -104,11 +104,13 @@ class renderer():
 	def normalXY(self, x0, y0, x1, y1): # Convierte las coordenadas normalizadas a normales
 		
 		xMin, xMax, yMin, yMax = self.glViewPort(
-			self.width/2, self.height/2, self.width/2, self.height/2
+			self.width/2, self.height/2, self.width, self.height
 			)
 			# Traduccion de los puntos ingresados
 		points = [x0, y0, x1, y1]
 		values = points
+		# Posible cancelacion de valores normalizados
+		"""
 		mid = 0
 		currentMin = 0
 		currentMax = 0
@@ -138,6 +140,7 @@ class renderer():
 				values[index] = int(i)
 			else:
 				return None
+		"""
 		return values
 
 	def largeSlope(self, currentX, finalX, currentY, finalY, slope, sign): # Ejecuta para pendientes empinadas
@@ -151,11 +154,15 @@ class renderer():
 
 		self.vertex(currentX, currentY) # Rellena
 		flag = round(currentX + slope)
-		for i in range(currentX-1, flag, -1):
-			if ((currentX >= finalX) and (currentY <= finalY)):
-				self.vertex(i, currentY) # Rellena
-				currentX += adder
-
+		for i in range(currentX+adder, flag, adder):
+			if (adder == -1): 
+				if ((currentX >= finalX) and (currentY <= finalY)):
+					self.vertex(i, currentY) # Rellena
+					currentX += adder
+			elif (adder == 1):
+				if ((currentX <= abs(finalX)) and (currentY <= abs(finalY))):
+					self.vertex(i, currentY) # Rellena
+					currentX += adder
 		return flag
 
 	def glLine(self, x0, y0, x1, y1): # Pinta una linea
@@ -333,6 +340,7 @@ class renderer():
 					self.verticesN.append(list(map(float, value.split(' '))))
 				elif prefix == 'f':
 					self.faces.append([list(map(int , face.split('/'))) for face in value.split(' ')])
+	
 	def load(self, filename, translate, scale):
 		self.obj(filename)
 		
@@ -361,7 +369,7 @@ class renderer():
 		self.frBff = self.glClear() # Pinta el bg de un color
 		self.frBff = self.glClearColor(0,0,1) # Modifica color de bg
 		self.glColor(0,0,0)
-		self.load("cube.obj")
+		self.load("cube.obj", [5, 5], [100, 100])
 
 		"""
 		if polygon == "polygonOne":
