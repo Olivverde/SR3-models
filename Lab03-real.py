@@ -8,11 +8,6 @@
 
 import struct
 
-frBff = ''
-currentColor = ''
-width = ''
-height = ''
-
 def char(c): # 1 bit
   return struct.pack('=c', c.encode('ascii'))
 
@@ -25,382 +20,369 @@ def dword(dw): # 4 bits
 def color(b, g, r): # generador de colores
   return bytes([b, g, r])
 
-def glCreatorWindow(width, height): # Crea la ventana, ancho x alto
-	fb =  [
-    [0 for x in range(width)] # Inicializa el framebuffer con ceros
-    for y in range(height)
-  	]
-	return fb
+bk = color(0, 0, 0)	
 
-def glViewPort(x, y, width, height): # Crea delimitantes a partir de limites
-	width = round(width/2,1)
-	height = round(height/2,1)
-	xMin = x - width
-	xMax = x + width
-	yMin = y - height
-	yMax = y + height
+class renderer():
+	def __init__(self):
+		self.currentColor = bk
+		self.frBff = []
+		self.glInit()
+		
+	def glCreatorWindow(self, width, height): # Crea la ventana, ancho x alto
+		fb = [
+			[0 for x in range(width)] # Inicializa el framebuffer con ceros
+			for y in range(height)
+			]
+		return fb
 
-	return xMin, xMax, yMin, yMax
+	def glViewPort(self, x, y, width, height): # Crea delimitantes a partir de limites
+		width = round(width/2,1)
+		height = round(height/2,1)
+		xMin = x - width
+		xMax = x + width
+		yMin = y - height
+		yMax = y + height
 
-def glClear(): # Limpia el framebuffer aplicandole color rojo
-	global frBff
-	frBff =  [
-    [color(0,0,255) for x in range(len(frBff))]
-    for y in range(len(frBff[0]))
-  	]
-	return frBff
+		return xMin, xMax, yMin, yMax
 
-def glClearColor(r, g, b): # Personaliza el color del framebuffer
-	global frBff
-	frBff =  [
-    [color(round(r*255), round(g*255), round(b*255)) for x in range(len(frBff))]
-    for y in range(len(frBff[0]))
-  	]
-	return frBff
+	def glClear(self): # Limpia el framebuffer aplicandole color rojo
+		self.frBff =  [
+		[color(0,0,255) for x in range(len(self.frBff))]
+		for y in range(len(self.frBff[0]))
+		]
+		return self.frBff
 
-"""
-def vertex(x,y): # Ubica un punto dentro del viewPort
-	global frBff
-	xMin, xMax, yMin, yMax = glViewPort(width/2, height/2, width/2, height/2) # Delimitadores
-	xMid = round((xMax-xMin)/2)
-	yMid = round((yMax-yMin)/2)
+	def glClearColor(self, r, g, b): # Personaliza el color del framebuffer
+		lgt = self.frBff
+		self.frBff =  [
+		[color(round(r*255), round(g*255), round(b*255)) for x in range(len(lgt))]
+		for y in range(len(lgt[0]))
+		]
+		return self.frBff
 
-	if ((x >= -1 and x <= 1) and (y >= -1 and y <= 1)): # Si esta en rango
-		# Casos para X
-		if (x < 0 and x >= -1):
-			x += 1
-			x = xMin + round(x*xMid)
-		elif (x > 0 and x <= 1):
-			x = 1 - x
-			x = xMax - round(x*xMid)
-		elif x == 0:
-			x = xMin + xMid
-		# Casos para Y
-		if (y < 0 and y >= -1):
-			y += 1
-			y = yMin + round(y*yMid)
-		elif (y > 0 and y <= 1):
-			y = 1 - y
-			y = yMax - round(y*yMid)
-		elif y == 0:
-			y = yMin + yMid
+	def vertex(self,x,y): # Ubica un punto dentro del viewPort
 
-		frBff[int(y)][int(x)] = currentColor 
-"""
+		self.frBff[y][x] = self.currentColor
+ 
+	def write(self, filename, width, height, framebuffer): # Escribe el .bmp
+		
+		f = open(filename, 'bw')
 
-def write(filename, width, height, framebuffer): # Escribe el .bmp
-	
-	f = open(filename, 'bw')
+		# file header 14
+		f.write(char('B'))
+		f.write(char('M'))
+		f.write(dword(14 + 40 + 3*(width*height)))
+		f.write(dword(0))
+		f.write(dword(54))
 
-    # file header 14
-	f.write(char('B'))
-	f.write(char('M'))
-	f.write(dword(14 + 40 + 3*(width*height)))
-	f.write(dword(0))
-	f.write(dword(54))
+		# info header 40
+		f.write(dword(40))
+		f.write(dword(width))
+		f.write(dword(height))
+		f.write(word(1))
+		f.write(word(24))
+		f.write(dword(0))
+		f.write(dword(3*(width*height)))
+		f.write(dword(0))
+		f.write(dword(0))
+		f.write(dword(0))
+		f.write(dword(0))
 
-	# info header 40
-	f.write(dword(40))
-	f.write(dword(width))
-	f.write(dword(height))
-	f.write(word(1))
-	f.write(word(24))
-	f.write(dword(0))
-	f.write(dword(3*(width*height)))
-	f.write(dword(0))
-	f.write(dword(0))
-	f.write(dword(0))
-	f.write(dword(0))
+		# bitmap
+		for y in range(height):
+			for x in range(width):
+				f.write(framebuffer[x][y])
 
-	# bitmap
-	for y in range(height):
-		for x in range(width):
-			f.write(framebuffer[x][y])
+		f.close()
 
-	f.close()
+	def glColor(self, r, g, b): # Cambia el color recurrente
+		self.currentColor = color(round(r*255), round(g*255), round(b*255))
 
-def glColor(r, g, b): # Cambia el color recurrente
-	global currentColor
-	currentColor = color(round(r*255), round(g*255), round(b*255))
+	def glFinish(self): # Ejecuta la inscripcion del bitmap
+		self.write('renderedObj.bmp', len(self.frBff), len(self.frBff[0]), self.frBff)
 
+	def normalXY(self, x0, y0, x1, y1): # Convierte las coordenadas normalizadas a normales
+		xMin, xMax, yMin, yMax = self.glViewPort(
+			self.width/2, self.height/2, self.width/2, self.height/2
+			)
+			# Traduccion de los puntos ingresados
+		points = [x0, y0, x1, y1]
+		values = list(map(int,points))
+		mid = 0
+		currentMin = 0
+		currentMax = 0
 
-def glFinish(): # Ejecuta la inscripcion del bitmap
-	write('renderedObj.bmp', len(frBff), len(frBff[0]), frBff)
+		for i in values: # Establece los valores segun el eje
+			index = values.index(i)
+			if (index%2 == 0): 
+				mid = round((xMax-xMin)*0.5)
+				currentMin = xMin
+				currentMax = xMax
+			else:
+				mid = round((yMax-yMin)*0.5)
+				currentMin = yMin
+				currentMax = yMax
+			if ((i >= -1 and i <= 1)): # Si esta en rango
+				# Casos 
+				if (i < 0 and i >= -1):
+					i += 1
+					i = currentMin + round(i*mid)
+				elif (i > 0 and i <= 1):
+					i = 1 - i
+					i = currentMax - round(i*mid)
+				elif i == 0:
+					i = currentMin + mid
+				values[index] = int(i)
+			else:
+				return None
+		return values
 
+	def largeSlope(self, currentX, finalX, currentY, finalY, slope, sign): # Ejecuta para pendientes empinadas
+		
+		# Identifica direccion de la pendiente
+		adder = 0
+		if sign == '-':
+			adder = -1
+		elif sign == '+':
+			adder = 1
 
-def glLine(x0, y0, x1, y1): # Pinta una linea
-	global frBff
-	xMin, xMax, yMin, yMax = glViewPort(width/2, height/2, 9*width/10, 9*height/10)
-	# Traduccion de los puntos ingresados
-	points = [x0, y0, x1, y1]
-	values = list(map(int,points))
+		self.vertex(currentX, currentY) # Rellena
+		flag = round(currentX + slope)
+		for i in range(currentX-1, flag, -1):
+			if ((currentX >= finalX) and (currentY <= finalY)):
+				self.vertex(i, currentY) # Rellena
+				currentX += adder
 
-	# ----------------------------------------------------------
-	# DISCLAIMER: Translator is not used in this lab
-	# ----------------------------------------------------------
+		return flag
 
-	
-	mid = 0
-	currentMin = 0
-	currentMax = 0
-	for i in values: # Establece los valores segun el eje
-		index = values.index(i)
-		if (index%2 == 0): 
-			mid = round((xMax-xMin)/2)
-			currentMin = xMin
-			currentMax = xMax
-		else:
-			mid = round((yMax-yMin)/2)
-			currentMin = yMin
-			currentMax = yMax
-		if ((i >= -1 and i <= 1)): # Si esta en rango
-			# Casos 
-			if (i < 0 and i >= -1):
-				i += 1
-				i = currentMin + round(i*mid)
-			elif (i > 0 and i <= 1):
-				i = 1 - i
-				i = currentMax - round(i*mid)
-			elif i == 0:
-				i = currentMin + mid
-			values[index] = int(i)
-	
-	currentX = values[0]
-	currentY = values[1]
-	finalX = values[2]
-	finalY = values[3]
-	
-	# ----------------------------------------------------------
-	# DISCLAIMER: Improvable Functional Code
-	# ----------------------------------------------------------
+	def glLine(self, x0, y0, x1, y1): # Pinta una linea
 
-	if (finalY - currentY) != 0:
-		slope = (finalX - currentX)/(finalY - currentY)
-
-		if slope < 0:
-
-			if ((finalX > currentX) and (finalY < currentY)):
+		currentColor = self.currentColor
+		values = self.normalXY(x0, y0, x1, y1)
+		currentX = values[0]
+		currentY = values[1]
+		finalX = values[2]
+		finalY = values[3]
+		
+		if (finalY - currentY) != 0: # Si la linea no es sobre el mismo punto Y
+			slope = (finalX - currentX)/(finalY - currentY)
+			# Pendientes Negativas
+			if slope < 0:
+				# Permite la reversibilidad de las coordenadas
+				if ((finalX > currentX) and (finalY < currentY)):
+					finalX, currentX = currentX, finalX
+					finalY, currentY = currentY, finalY
+				# Pendientes muy inclinadas
+				if slope <= -1:
+					# Mientras no sobrepase los limites
+					while ((currentX >= finalX) and (currentY <= finalY)):
+						# Suma el valor del slope por cada iteracion
+						currentX = self.largeSlope(currentX, finalX, currentY, finalY, slope, '-')
+						currentY += 1
+				# Pendientes menores a los 45 grados
+				if slope > -1:
+					while ((currentX >= finalX) and (currentY <= finalY)):
+						self.vertex(round(currentX), currentY)
+						currentX += slope
+						currentY += 1
+			# Permite la reversibilidad de las coordenadas
+			if ((finalX < currentX) and (finalY < currentY)):
 				finalX, currentX = currentX, finalX
 				finalY, currentY = currentY, finalY
-
-			if slope <= -1:
-				while ((currentX >= finalX) and (currentY <= finalY)):
-					frBff[int(round(currentY))][int(round(currentX))] = currentColor
-					flag = currentX + slope
-					for i in range(int(round(currentX))-1,int(round(flag)), -1):
-						if ((currentX >= finalX) and (currentY <= finalY)):
-							frBff[int(round(currentY))][int(round(i))] = currentColor
-							currentX -= 1
-					currentX = flag
+			# Pendientes Positivas
+			absX = abs(finalX)
+			absY = abs(finalY)
+			# Pendientes Arriba de los 45 grados
+			if slope >= 1:
+				while ((currentX <= absX) and (currentY <= absY)):
+					# Suma el valor del slope por cada iteracion
+					currentX = self.largeSlope(currentX, finalX, currentY, finalY, slope, '+')
 					currentY += 1
-			if slope > -1:
-				while ((currentX >= finalX) and (currentY <= finalY)):
-					frBff[int(round(currentY))][int(round(currentX))] = currentColor
+			# Pendientes Abajo de los 45 grados
+			elif slope < 1:
+				while ((currentX <= absX) and (currentY <= absY)):
+					self.vertex(currentX, currentY)
 					currentX += slope
 					currentY += 1
+		elif (finalY - currentY) == 0:
+			if (finalX < currentX):
+				finalX, currentX = currentX, finalX
 
-		if ((finalX < currentX) and (finalY < currentY)):
-			finalX, currentX = currentX, finalX
-			finalY, currentY = currentY, finalY
+			while ((currentX <= absX)):
+				for i in range(currentX, finalX+1):
+					self.vertex(i, currentY) # Rellena
+					currentX += 1
+	"""
+	def polygonOne():
 
-		if slope >= 1:
-			while ((currentX <= abs(finalX)) and (currentY <= abs(finalY))):
-				frBff[int(round(currentY))][int(round(currentX))] = currentColor
-				flag = currentX + slope
-				for i in range(int(round(currentX))+1, int(round(flag))):
-					if ((currentX <= abs(finalX)) and (currentY <= abs(finalY))):
-						frBff[int(round(currentY))][int(round(i))] = currentColor
-						currentX += 1
-				currentX = flag
-				currentY += 1
+		# Raw coordinates are been submitted 
+		glLine(165, 380,185, 360)
+		glLine(185, 360,180, 330)
+		glLine(180, 330,207, 345)
+		glLine(207, 345,233, 330)
+		glLine(233, 330,230, 360)
+		glLine(230, 360,250, 380) 
+		glLine(250, 380,220, 385) 
+		glLine(220, 385,205, 410) 
+		glLine(205, 410,193, 383) 
+		glLine(193, 383,165, 380)
 
-		elif slope < 1:
-			while ((currentX <= abs(finalX)) and (currentY <= abs(finalY))):
-				frBff[int(round(currentY))][int(round(currentX))] = currentColor
-				currentX += slope
-				currentY += 1
-	elif (finalY - currentY) == 0:
-		if (finalX < currentX):
-			finalX, currentX = currentX, finalX
+		masterFill("polygonOne")
 
-		while ((currentX <= abs(finalX))):
-			for i in range(currentX, finalX+1):
-				frBff[int(round(currentY))][int(round(i))] = currentColor
-				currentX += 1
+	def polygonTwo():
 
-"""
-def polygonOne():
+		# Raw coordinates are been submitted 
+		glLine(321, 335,288, 286)
+		glLine(288, 286,339, 251)
+		glLine(339, 251,374, 302)
+		glLine(374, 302,321, 335)
 
-	# Raw coordinates are been submitted 
-	glLine(165, 380,185, 360)
-	glLine(185, 360,180, 330)
-	glLine(180, 330,207, 345)
-	glLine(207, 345,233, 330)
-	glLine(233, 330,230, 360)
-	glLine(230, 360,250, 380) 
-	glLine(250, 380,220, 385) 
-	glLine(220, 385,205, 410) 
-	glLine(205, 410,193, 383) 
-	glLine(193, 383,165, 380)
+		masterFill("polygonTwo")
 
-	masterFill("polygonOne")
+	def polygonThree():
 
-def polygonTwo():
+		# Raw coordinates are been submitted 
+		glLine(377, 249,411, 197)
+		glLine(411, 197,436, 249)
+		glLine(436, 249,377, 249)
 
-	# Raw coordinates are been submitted 
-	glLine(321, 335,288, 286)
-	glLine(288, 286,339, 251)
-	glLine(339, 251,374, 302)
-	glLine(374, 302,321, 335)
+		masterFill("polygonThree")
 
-	masterFill("polygonTwo")
+	def polygonFour():
 
-def polygonThree():
+		# Raw coordinates are been submitted 
+		glLine(413, 177,448, 159)
+		glLine(448, 159,502, 88)
+		glLine(502, 88,553, 53)
+		glLine(553, 53,535, 36)
+		glLine(535, 36,676, 37)
+		glLine(676, 37,660, 52)
+		glLine(660, 52,750, 145)
+		glLine(750, 145,761, 179)
+		glLine(761, 179,672, 192)
+		glLine(672, 192,659, 214)
+		glLine(659, 214,615, 214)
+		glLine(615, 214,632, 230)
+		glLine(632, 230,580, 230)
+		glLine(580, 230,597, 215)
+		glLine(597, 215,552, 214)
+		glLine(552, 214,517, 144)
+		glLine(517, 144,466, 180)
+		glLine(466, 180,413, 177)
 
-	# Raw coordinates are been submitted 
-	glLine(377, 249,411, 197)
-	glLine(411, 197,436, 249)
-	glLine(436, 249,377, 249)
+		masterFill("polygonFour")
 
-	masterFill("polygonThree")
+	def polygonFive():
 
-def polygonFour():
+		# Raw coordinates are been submitted 
+		glLine(682, 175,708, 120)
+		glLine(708, 120,735, 148)
+		glLine(735, 148,739, 170)
+		glLine(739, 170,682, 175)
 
-	# Raw coordinates are been submitted 
-	glLine(413, 177,448, 159)
-	glLine(448, 159,502, 88)
-	glLine(502, 88,553, 53)
-	glLine(553, 53,535, 36)
-	glLine(535, 36,676, 37)
-	glLine(676, 37,660, 52)
-	glLine(660, 52,750, 145)
-	glLine(750, 145,761, 179)
-	glLine(761, 179,672, 192)
-	glLine(672, 192,659, 214)
-	glLine(659, 214,615, 214)
-	glLine(615, 214,632, 230)
-	glLine(632, 230,580, 230)
-	glLine(580, 230,597, 215)
-	glLine(597, 215,552, 214)
-	glLine(552, 214,517, 144)
-	glLine(517, 144,466, 180)
-	glLine(466, 180,413, 177)
-
-	masterFill("polygonFour")
-
-def polygonFive():
-
-	# Raw coordinates are been submitted 
-	glLine(682, 175,708, 120)
-	glLine(708, 120,735, 148)
-	glLine(735, 148,739, 170)
-	glLine(739, 170,682, 175)
-
-	masterFill("polygonFive")
+		masterFill("polygonFive")
 	
+	def masterFill(name):
 
-def masterFill(name):
-
-	name = name + ".bmp"
-	for x in range(len(frBff)):
-		inter = []
-		flag = True
-		flag_2 = 0
-		for y in range(len(frBff[x])):
-			if frBff[y][x] == currentColor:
-				if flag == True:
-					inter.append([x,y])
-					flag = False
-				elif flag == False:
-					if y != inter[flag_2][1]+1:
+		name = name + ".bmp"
+		for x in range(len(frBff)):
+			inter = []
+			flag = True
+			flag_2 = 0
+			for y in range(len(frBff[x])):
+				if frBff[y][x] == currentColor:
+					if flag == True:
 						inter.append([x,y])
-						flag_2 += 1
+						flag = False
+					elif flag == False:
+						if y != inter[flag_2][1]+1:
+							inter.append([x,y])
+							flag_2 += 1
+					
+			if len(inter) == 2:
+				glLine(inter[0][0], inter[0][1], inter[1][0], inter[1][1])
+		
+			if len(inter) == 4:
+				glLine(inter[0][0], inter[0][1], inter[1][0], inter[1][1])
+				glLine(inter[2][0], inter[2][1], inter[3][0], inter[3][1])
+
+		write(name, len(frBff), len(frBff[0]), frBff)
+	"""
+	def obj(self,filename): # Realiza la lectura del obj
+		with open(filename) as f:
+			self.lines = f.read().splitlines()
+			self.vertices = []
+			self.verticesT = []
+			self.verticesN = []
+			self.faces = []
+			self.read()
+
+	def read(self): # Realiza la lectura del obj, parte 2
+		for line in self.lines:
+			if line:
+				prefix, value = line.split(' ', 1)
+				if prefix == 'v':
+					self.vertices.append(list(map(float, value.split(' '))))
+				elif prefix == 'vt':
+					self.verticesT.append(list(map(float, value.split(' '))))
+				elif prefix == 'vn':
+					self.verticesN.append(list(map(float, value.split(' '))))
+				elif prefix == 'f':
+					self.faces.append([list(map(int , face.split('/'))) for face in value.split(' ')])
+		
+		def load(filename, translate, scale):
+			model = obj(filename)
+			for face in self.faces:
+				vcount = len(face)
+
+			for j in range(vcount):
+				f1 = face[j][0]
+				f2 = face[(j + 1) % vcount][0]
+
+				v1 = self.vertices[f1 - 1]
+				v2 = self.vertices[f2 - 1]
+
+				x1 = round((v1[0]))
+				y1 = round((v1[1]))
+				x2 = round((v2[0]))
+				y2 = round((v2[1]))
+
+				self.glLine(x1, y1, x2, y2)
 				
-		if len(inter) == 2:
-			glLine(inter[0][0], inter[0][1], inter[1][0], inter[1][1])
-	
-		if len(inter) == 4:
-			glLine(inter[0][0], inter[0][1], inter[1][0], inter[1][1])
-			glLine(inter[2][0], inter[2][1], inter[3][0], inter[3][1])
-
-	write(name, len(frBff), len(frBff[0]), frBff)
-"""
-
-def obj(filename):
-	global vertices, faces, lines
-	with open(filename) as f:
-		lines = f.read().splitlines()
-		vertices = []
-		faces = []
-		read()
-
-def read():
-	for line in lines:
-		if line:
-			prefix, value = line.split(' ', 1)
-			if prefix == 'v':
-				vertices.append(list(map(float, value.split(' '))))
-			elif prefix == 'f':
-				faces.append([list(map(int , face.split('/'))) for face in value.split(' ')])
 
 
-def load(filename, translate, scale):
-    model = obj(filename)
-    
-    for face in faces:
-      vcount = len(face)
-      for j in range(vcount):
-        f1 = face[j][0]
-        f2 = face[(j + 1) % vcount][0]
+	def glInit(self): # Inicializa el programa
+		
+		self.currentColor = color(1,0,0)
+		self.width = 1024
+		self.height =  1024
+		self.frBff = self.glCreatorWindow(self.width, self.height) # Framebuffer
+		self.frBff = self.glClear() # Pinta el bg de un color
+		self.frBff = self.glClearColor(0,0,1) # Modifica color de bg
+		self.glColor(0,0,0)
+		self.glLine(1, -1, -1, 0)
+		self.obj("cube.obj")
 
-        v1 = vertices[f1 - 1]
-        v2 = vertices[f2 - 1]
+		"""
+		if polygon == "polygonOne":
+			polygonOne() # 70% completed
+		elif polygon == "polygonTwo":
+			polygonTwo() # 100% completed
+		elif polygon == "polygonThree":
+			polygonThree() # 90% completed
+		elif polygon == "polygonFour":
+			polygonFour() # 75% completed
+		elif polygon == "polygonFive":
+			polygonFive() # 80% completed
 
-        x1 = round((v1[0]))
-        y1 = round((v1[1]))
-        x2 = round((v2[0]))
-        y2 = round((v2[1]))
+		# LAB 1 -----------------------------------------------
+		# vertex(1,1)
+		# vertex(0,0)
+		# vertex(-1,-1)
 
-        print(x1, y1, x2, y2)
-        glLine(x1, y1, x2, y2)
+		# LAB 2 -----------------------------------------------
+		"""
 
+		self.glFinish()
 
-def glInit(): # Inicializa el programa
-	
-	global frBff
-	global currentColor
-	global width
-	global height
-	currentColor = color(1,0,0)
-	width = 1024
-	height =  1024
-	frBff = glCreatorWindow(width, height) # Framebuffer
-	frBff = glClear() # Pinta el bg de un color
-	frBff = glClearColor(0,0,1) # Modifica color de bg
-	glColor(0,0,0)
-	load("cube.obj", 0, 0)
-
-	"""
-	if polygon == "polygonOne":
-		polygonOne() # 70% completed
-	elif polygon == "polygonTwo":
-		polygonTwo() # 100% completed
-	elif polygon == "polygonThree":
-		polygonThree() # 90% completed
-	elif polygon == "polygonFour":
-		polygonFour() # 75% completed
-	elif polygon == "polygonFive":
-		polygonFive() # 80% completed
-	"""
-
-	# LAB 1 -----------------------------------------------
-	# vertex(1,1)
-	# vertex(0,0)
-	# vertex(-1,-1)
-
-	# LAB 2 -----------------------------------------------
-	
-	glFinish()
-
-
-glInit()
+renderer()
