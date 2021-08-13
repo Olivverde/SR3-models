@@ -102,12 +102,13 @@ class renderer():
 		self.write('renderedObj.bmp', len(self.frBff), len(self.frBff[0]), self.frBff)
 
 	def normalXY(self, x0, y0, x1, y1): # Convierte las coordenadas normalizadas a normales
+		
 		xMin, xMax, yMin, yMax = self.glViewPort(
 			self.width/2, self.height/2, self.width/2, self.height/2
 			)
 			# Traduccion de los puntos ingresados
 		points = [x0, y0, x1, y1]
-		values = list(map(int,points))
+		values = points
 		mid = 0
 		currentMin = 0
 		currentMax = 0
@@ -122,13 +123,15 @@ class renderer():
 				mid = round((yMax-yMin)*0.5)
 				currentMin = yMin
 				currentMax = yMax
-			if ((i >= -1 and i <= 1)): # Si esta en rango
+			if ((i >= -2 and i <= 2)): # Si esta en rango
 				# Casos 
-				if (i < 0 and i >= -1):
-					i += 1
+				if (i < 0 and i >= -2):
+					i += 2
+					i = i*0.5
 					i = currentMin + round(i*mid)
-				elif (i > 0 and i <= 1):
-					i = 1 - i
+				elif (i > 0 and i <= 2):
+					i = 2 - i
+					i = i*0.5
 					i = currentMax - round(i*mid)
 				elif i == 0:
 					i = currentMin + mid
@@ -201,10 +204,11 @@ class renderer():
 			# Pendientes Abajo de los 45 grados
 			elif slope < 1:
 				while ((currentX <= absX) and (currentY <= absY)):
-					self.vertex(currentX, currentY)
+					self.vertex(round(currentX), currentY)
 					currentX += slope
 					currentY += 1
 		elif (finalY - currentY) == 0:
+			absX = abs(finalX)
 			if (finalX < currentX):
 				finalX, currentX = currentX, finalX
 
@@ -329,11 +333,11 @@ class renderer():
 					self.verticesN.append(list(map(float, value.split(' '))))
 				elif prefix == 'f':
 					self.faces.append([list(map(int , face.split('/'))) for face in value.split(' ')])
+	def load(self, filename, translate, scale):
+		self.obj(filename)
 		
-		def load(filename, translate, scale):
-			model = obj(filename)
-			for face in self.faces:
-				vcount = len(face)
+		for face in self.faces:
+			vcount = len(face)
 
 			for j in range(vcount):
 				f1 = face[j][0]
@@ -341,15 +345,12 @@ class renderer():
 
 				v1 = self.vertices[f1 - 1]
 				v2 = self.vertices[f2 - 1]
-
-				x1 = round((v1[0]))
-				y1 = round((v1[1]))
-				x2 = round((v2[0]))
-				y2 = round((v2[1]))
-
-				self.glLine(x1, y1, x2, y2)
 				
-
+				x1 = round((v1[0] + translate[0]) * scale[0])
+				y1 = round((v1[1] + translate[1]) * scale[1])
+				x2 = round((v2[0] + translate[0]) * scale[0])
+				y2 = round((v2[1] + translate[1]) * scale[1])
+				self.glLine(x1, y1, x2, y2)
 
 	def glInit(self): # Inicializa el programa
 		
@@ -360,8 +361,7 @@ class renderer():
 		self.frBff = self.glClear() # Pinta el bg de un color
 		self.frBff = self.glClearColor(0,0,1) # Modifica color de bg
 		self.glColor(0,0,0)
-		self.glLine(1, -1, -1, 0)
-		self.obj("cube.obj")
+		self.load("cube.obj")
 
 		"""
 		if polygon == "polygonOne":
