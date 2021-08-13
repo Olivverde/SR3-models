@@ -61,9 +61,45 @@ class renderer():
 		return self.frBff
 
 	def vertex(self,x,y): # Ubica un punto dentro del viewPort
-
-		self.frBff[y][x] = self.currentColor
+		try:
+			self.frBff[x][y] = self.currentColor
+		except:
+			pass
  
+	def line(self,start,end): # Traza líneas de manera más eficiente
+		x1, y1 = start
+		x2, y2 = end
+
+		dy = abs(y2 - y1)
+		dx = abs(x2 - x1)
+		steep = dy > dx
+
+		if steep:
+			x1, y1 = y1, x1
+			x2, y2 = y2, x2
+
+		if x1 > x2:
+			x1, x2 = x2, x1
+			y1, y2 = y2, y1
+
+		dy = abs(y2 - y1)
+		dx = abs(x2 - x1)
+
+		offset = 0
+		threshold = dx
+
+		y = y1
+		for x in range(x1, x2 + 1):
+			if steep:
+				self.vertex(y, x)
+			else:
+				self.vertex(x, y)
+			
+			offset += dy * 2
+			if offset >= threshold:
+				y += 1 if y1 < y2 else -1
+				threshold += dx * 2
+
 	def write(self, filename, width, height, framebuffer): # Escribe el .bmp
 		
 		f = open(filename, 'bw')
@@ -142,6 +178,10 @@ class renderer():
 				return None
 		"""
 		return values
+	
+	# ---------------------------------------------------------------
+	# IMPROVABLE FUNCTIONAL GLINE FUNCTION
+	# ---------------------------------------------------------------
 
 	def largeSlope(self, currentX, finalX, currentY, finalY, slope, sign): # Ejecuta para pendientes empinadas
 		
@@ -358,7 +398,7 @@ class renderer():
 				y1 = round((v1[1] + translate[1]) * scale[1])
 				x2 = round((v2[0] + translate[0]) * scale[0])
 				y2 = round((v2[1] + translate[1]) * scale[1])
-				self.glLine(x1, y1, x2, y2)
+				self.line((x1, y1), (x2, y2))
 
 	def glInit(self): # Inicializa el programa
 		
@@ -369,7 +409,7 @@ class renderer():
 		self.frBff = self.glClear() # Pinta el bg de un color
 		self.frBff = self.glClearColor(0,0,1) # Modifica color de bg
 		self.glColor(0,0,0)
-		self.load("cube.obj", [5, 5], [100, 100])
+		self.load("face.obj", [51,25], [10, 10])
 
 		"""
 		if polygon == "polygonOne":
