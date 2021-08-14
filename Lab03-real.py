@@ -409,7 +409,7 @@ class renderer():
 		self.frBff = self.glClear() # Pinta el bg de un color
 		self.frBff = self.glClearColor(0,0,1) # Modifica color de bg
 		self.glColor(0,0,0)
-		self.load("face.obj", [51,25], [10, 10])
+		self.load("Bowl.obj", [51,25], [5, 5])
 
 		"""
 		if polygon == "polygonOne":
